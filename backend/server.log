@@ -1,0 +1,4 @@
+[dotenv@17.2.1] injecting env (10) from config/config.env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
+✅ Server is running on port 4000
+📍 Health check: http://localhost:4000/api/v1/health
+connected to database
