@@ -1,161 +1,188 @@
-import axios from 'axios';
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-
+import axios from "axios";
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { Context } from "../main";
 
 const AppointmentForm = () => {
-    
-    const [firstName,setFirstName]=useState("");
-    const [lastName,setLastName]=useState("");
-    const [email,setEmail]=useState("");
-    const [phone,setPhone]=useState("");
-    const [nic,setNic]=useState("");
-    const [dob,setDob]=useState("");
-    const [gender,setGender]=useState("");
-    const [appointmentDate,setAppointmentDate]=useState("");
-    const [department,setDepartment] = useState("");
-    const [doctorFirstName,setDoctorFirstName]=useState("");
-    const [doctorLastName,setDoctorLastName]=useState("");
-    const [address,setAddress]=useState("");
-    const [hasVisited,setHasVisited]=useState("")
+  const { isAuthenticated } = useContext(Context);
+  const navigateTo = useNavigate();
 
-    const departmentsArray = [
-        "Pediatrics",
-        "Orthopedics",
-        "cardiology",
-        "Neurology",
-        "Oncology",
-        "radiology",
-        "Physical Therapy",
-        "Dermatology",
-        "ENT",
-      ];
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
+  const [gender, setGender] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [department, setDepartment] = useState("");
+  const [address, setAddress] = useState("");
+  const [hasVisited, setHasVisited] = useState(false);
 
-      const navigateTo = useNavigate();
+  const departmentsArray = [
+    "Pediatrics",
+    "Orthopedics",
+    "Cardiology",
+    "Neurology",
+    "Oncology",
+    "Radiology",
+    "Physical Therapy",
+    "Dermatology",
+    "ENT",
+  ];
 
-      const[doctors,setDoctors]=useState([]);
-      useEffect(()=>{
-        const fetchDoctors = async()=>{
-            try {
-                const response = await axios.get("http://localhost:4000/api/v1/user/doctors",{withCredentials:true});
-                setDoctors(response.data.doctors || []);
-            } catch (error) {
-                console.error("Error fetching doctors:", error);
-                setDoctors([]);
-            }
-        };
-        fetchDoctors();
+  const handleAppointment = async (e) => {
+    e.preventDefault();
 
-      },[]);
-    const handleAppointment = async(e)=>{
-        e.preventDefault();
-        try{
-          const hasVisitedBool = Boolean(hasVisited);
-          const data = await axios.post(" http://localhost:4000/api/v1/appointment/post",
-          {firstName,
-            lastName,
-            email,
-            phone,
-            nic,
-            dob,
-            gender,
-            appointment_date:appointmentDate,
-            department,
-            hasVisited:hasVisitedBool,
-            address,
-            doctor_firstName:doctorFirstName,
-            doctor_lastName:doctorLastName},{withCredentials:true,headers:{"Content-Type":"application/json"}});
-            toast.success(data.message);
-            navigateTo("/")
-
-        }catch(error){
-          toast.error(error.response.data.message)
-
-        }
-
+    // ✅ Not logged in
+    if (!isAuthenticated) {
+      toast.error("Please login first to book an appointment");
+      navigateTo("/login");
+      return;
     }
 
+    // ✅ Empty field check
+    if (
+      !firstName ||
+      !email ||
+      !phone ||
+      !dob ||
+      !gender ||
+      !appointmentDate ||
+      !department ||
+      !address
+    ) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      const { data } = await axios.post(
+        "http://localhost:4000/api/v1/appointment/post",
+        {
+          firstName,
+          lastName,
+          email,
+          phone,
+          dob,
+          gender,
+          appointment_date: appointmentDate,
+          department,
+          hasVisited,
+          address,
+        },
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      toast.success(data.message || "Appointment booked successfully");
+      navigateTo("/");
+
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Booking failed");
+    }
+  };
+
   return (
-    <> 
-        <div className='container form-component appointment-form'>
-      <h2>Appointment</h2>
-      
-      <form onSubmit={handleAppointment}>
-        <div>
-          <input type="text" placeholder='First Name' value={firstName} onChange={(e)=>setFirstName(e.target.value)} />
-          <input type="text"  placeholder='Last Name' value={lastName} onChange={(e)=>setLastName(e.target.value)} />
-        
-        </div>
-        <div>
-          <input type="email" placeholder='Email' value={email} onChange={(e)=>setEmail(e.target.value)} />
-          <input type="number"  placeholder='Phone number' value={phone} onChange={(e)=>setPhone(e.target.value)} />
-        
-        </div>
-        <div>
-          <input type="number" placeholder='NIC' value={nic} onChange={(e)=>setNic(e.target.value)} />
-          <input type="date"  placeholder='Date Of Birth' value={dob} onChange={(e)=>setDob(e.target.value)} />
-        
-        </div>
-        <div>
-          <select value={gender} onChange={(e)=>setGender(e.target.value)}>
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-          <input type="date" placeholder='Appointment date' value={appointmentDate} onChange={(e)=>setAppointmentDate(e.target.value)} />
-          
-        
-        </div>
-        <div>
-            <select value={department} onChange={(e)=>{setDepartment(e.target.value);
-                setDoctorFirstName("");
-                setDoctorLastName("");
-            }}>
-                {
-                    departmentsArray.map((depart,index)=>{
-                        return(
-                            <option value={depart} key={index}>{depart}</option>
-                        )
+    <div className="appointment-wrapper">
+      <div className="appointment-card">
+        <h2>Book Appointment</h2>
 
-                    })
-                }
+        {/* ✅ login message */}
+        {!isAuthenticated && (
+          <p className="login-warning">
+            ⚠ Please sign in to book an appointment
+          </p>
+        )}
+
+        <form onSubmit={handleAppointment}>
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="First Name *"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+
+          <div className="form-row">
+            <input
+              type="email"
+              placeholder="Email *"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number *"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div className="form-row">
+            <input
+              type="date"
+              title="Date of Birth"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
+            <input
+              type="datetime-local"
+              title="Appointment Date & Time"
+              value={appointmentDate}
+              onChange={(e) => setAppointmentDate(e.target.value)}
+            />
+          </div>
+
+          <div className="form-row">
+            <select value={gender} onChange={(e) => setGender(e.target.value)}>
+              <option value="">Select Gender *</option>
+              <option>Male</option>
+              <option>Female</option>
             </select>
-            <select value={`${doctorFirstName} ${doctorLastName}`} onChange={(e)=>{
-                const [firstName,lastName] = e.target.value.split(" ");
-                setDoctorFirstName(firstName);
-                setDoctorLastName(lastName);
-            }}
-            disabled={!department}
-            >
-                <option value="">Select Doctor</option>
-                {
-                    doctors.filter(doctor=>doctor.doctorDepartment === department).map((doctor,index)=>{
-                        return(
-                            <option value={`${doctor.firstName} ${doctor.lastName}`} key={index}>
-                                {doctor.firstName} {doctor.lastName}
-                            </option>
-                        )
-                    })
-                }
+
+            <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+              <option value="">Select Department *</option>
+              {departmentsArray.map((d, i) => (
+                <option key={i} value={d}>{d}</option>
+              ))}
             </select>
-        </div>
+          </div>
 
-        <textarea rows={10} value={address} placeholder='Address' onChange={(e)=>setAddress(e.target.value)}></textarea>
+          <textarea
+            rows="4"
+            placeholder="Address *"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
 
+          <div className="checkbox-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={hasVisited}
+                onChange={(e) => setHasVisited(e.target.checked)}
+              />
+              Have you visited before?
+            </label>
+          </div>
 
-        <div style={{gap:"10px",justifyContent:"flex-end",flexDirection:"row"}}>
-          <p style={{marginBottom:0}}>Have you visited before?</p>
-          <input type="checkbox" checked={hasVisited} onChange={(e)=>setHasVisited(e.target.checked)} style={{flex:"none",width:"25px"}}/>
-        </div>
-        <div style={{alignItems:"center",justifyContent:"center"}}>
-          <button>Get Appointment</button>
-        </div>
-      </form>
+          <button type="submit" className="appointment-btn">
+            Get Appointment
+          </button>
+        </form>
+      </div>
     </div>
+  );
+};
 
-    </>
-  )
-}
-
-export default AppointmentForm
+export default AppointmentForm;

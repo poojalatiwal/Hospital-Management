@@ -1,128 +1,118 @@
-import app from "../app.js";
 import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/errorMiddleware.js";
-import {Appointment} from "../models/appointmentSchema.js";
-import { User } from "../models/userSchema.js";
+import { Appointment } from "../models/appointmentSchema.js";
 
-export const postAppointment = catchAsyncErrors(async(req,res,next)=>{
-    if (!req.body) {
-        return next(new ErrorHandler("Request body is missing!", 400));
-    }
-    
-    const {
-        firstName,
-        lastName,
-        email,
-        nic,
-        phone,
-        dob,
-        gender,
-        appointment_date,
-        department,
-        doctor_firstName,
-        doctor_lastName,
-        hasVisited = false, // Default to false if not provided
-        address
-    } = req.body;
+/* ============================
+   CREATE APPOINTMENT
+============================ */
+export const postAppointment = catchAsyncErrors(async (req, res, next) => {
 
-    const requiredFields = [
-        'firstName', 'lastName', 'email', 'nic', 'phone', 'dob', 
-        'gender', 'appointment_date', 'department', 'doctor_firstName', 
-        'doctor_lastName', 'address'
-    ];
+  if (!req.user) {
+    return next(new ErrorHandler("Please login to book appointment", 401));
+  }
 
-    
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-        return next(new ErrorHandler(`Missing required fields: ${missingFields.join(', ')}`, 400));
-    }
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    dob,
+    gender,
+    appointment_date,
+    department,
+    hasVisited = false,
+    address
+  } = req.body;
 
-    const isConflict = await User.find({
-        firstName: doctor_firstName,
-        lastName: doctor_lastName,
-        role: "Doctor",
-        doctorDepartment: department
-    });
+  // ✅ Required fields check
+  if (
+    !firstName ||
+    !email ||
+    !phone ||
+    !dob ||
+    !gender ||
+    !appointment_date ||
+    !department ||
+    !address
+  ) {
+    return next(new ErrorHandler("Please fill all required fields", 400));
+  }
 
-    if (isConflict.length === 0) {
-        return next(new ErrorHandler("Doctor not found!",400));
-    }
+  const patientId = req.user._id;
 
-    if (isConflict.length > 1) {
-        return next(new ErrorHandler("Doctors conflict please contact through email!",400));
-    }
+  await Appointment.create({
+    firstName,
+    lastName,
+    email,
+    phone,
+    dob,
+    gender,
+    appointment_date,
+    department,
+    hasVisited,
+    address,
+    patientId
+  });
 
-    const doctorId = isConflict[0]._id;
-    const patientId = req.user._id;
-
-    await Appointment.create({
-        firstName,
-        lastName,
-        email,
-        nic,
-        phone,
-        dob,
-        gender,
-        appointment_date,
-        department,
-        doctor:{
-            firstName: doctor_firstName,
-            lastName: doctor_lastName,
-        },
-        address,
-        hasVisited,
-        doctorId,
-        patientId
-    });
-
-    res.status(200).json({
-        success:true,
-        message:"Appointment sent successfully!"
-    });
+  res.status(201).json({
+    success: true,
+    message: "Appointment booked successfully!",
+  });
 });
 
 
-export const getAllAppointments = catchAsyncErrors(async(req,res,next)=>{
-    const appointments = await Appointment.find();
-    res.status(200).json({
-        success:true,
-        appointments
-    });
+/* ============================
+   GET ALL APPOINTMENTS
+============================ */
+export const getAllAppointments = catchAsyncErrors(async (req, res, next) => {
+  const appointments = await Appointment.find().sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    appointments,
+  });
 });
 
 
-export const updateAppointmentStatus = catchAsyncErrors(async(req,res,next)=>{
-    const {id} = req.params;
-    let appointment = await Appointment.findById(id);
-    if(!appointment){
-        return next(new ErrorHandler("appointment not found",404))
-    } 
-    appointment = await Appointment.findByIdAndUpdate(id,req.body,{
-        new:true,
-        runValidators:true,
-        useFindAndModify:false,
-    });
-    res.status(200).json({
-        success:true,
-        message:"appointment status updated!",
-        appointment,
-    })
+/* ============================
+   UPDATE APPOINTMENT STATUS
+============================ */
+export const updateAppointmentStatus = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
 
+  let appointment = await Appointment.findById(id);
+  if (!appointment) {
+    return next(new ErrorHandler("Appointment not found", 404));
+  }
+
+  appointment = await Appointment.findByIdAndUpdate(id, req.body, {
+    new: true,
+    runValidators: true,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Appointment status updated!",
+    appointment,
+  });
 });
 
-export const deleteAppointment = catchAsyncErrors(async(req,res,next)=>{
-    const {id} = req.params;
-    let appointment = await Appointment.findById(id);
-    if(!appointment){
-        return next(new ErrorHandler("appointment not found",404))
-    } ;
 
-    await appointment.deleteOne();
-    res.status(200).json({
-        success:true,
-        message:"appointment deleted",
+/* ============================
+   DELETE APPOINTMENT
+============================ */
+export const deleteAppointment = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
 
-    });
+  const appointment = await Appointment.findById(id);
+  if (!appointment) {
+    return next(new ErrorHandler("Appointment not found", 404));
+  }
 
-})
+  await appointment.deleteOne();
+
+  res.status(200).json({
+    success: true,
+    message: "Appointment deleted successfully",
+  });
+});

@@ -45,13 +45,14 @@ const Login = () => {
     return <Navigate to="/" />;
   }
 
-  return (
-    <div className="container form-component login-form">
+return (
+  <div className="login-page">
+    <div className="login-card">
+
       <h2>Sign In</h2>
-      <p>Please login to continue</p>
+      <p className="login-sub">Please login to continue</p>
 
       <form onSubmit={handleLogin}>
-        {/* Email */}
         <input
           type="email"
           placeholder="Email"
@@ -61,7 +62,6 @@ const Login = () => {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Password */}
         <div style={{ position: "relative", width: "100%" }}>
           <input
             type={showPassword ? "text" : "password"}
@@ -70,42 +70,30 @@ const Login = () => {
             required
             disabled={loading}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ paddingRight: "42px" }}
           />
 
           <span
             onClick={() => !loading && setShowPassword(!showPassword)}
-            style={{
-              position: "absolute",
-              right: "14px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              cursor: loading ? "not-allowed" : "pointer",
-              color: "#555",
-              fontSize: "18px",
-            }}
+            className="eye-icon"
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}
           </span>
         </div>
 
-        {/* Register */}
-      {/* Button */}
-<div className="login-btn-wrapper">
-  <button type="submit" disabled={loading}>
-    {loading ? "Logging in..." : "Login"}
-  </button>
-</div>
+        <div className="login-btn-wrapper">
+          <button type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
+          </button>
+        </div>
 
-<div className="register-row">
-  <span className="register-text">Not Registered?</span>
-  <Link to="/register" className="register-link">Register Now</Link>
-</div>
-
-
+        <div className="register-row">
+          <span className="register-text">Not Registered?</span>
+          <Link to="/register" className="register-link">Register Now</Link>
+        </div>
       </form>
-    </div>
-  );
-};
 
+    </div>
+  </div>
+);
+}
 export default Login;

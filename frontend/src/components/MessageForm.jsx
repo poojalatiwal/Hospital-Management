@@ -1,42 +1,119 @@
-import axios from 'axios';
-import React, { useState } from 'react'
-import { toast } from 'react-toastify';
+import axios from "axios";
+import React, { useContext, useState } from "react";
+import { toast } from "react-toastify";
+import { Context } from "../main";
+import { useNavigate } from "react-router-dom";
 
 const MessageForm = () => {
-    const [firstName,setFirstName] = useState("");
-    const [lastName,setLastName] = useState("");
-    const [email,setEmail] = useState("");
-    const [phone,setPhone] = useState("");
-    const [message,setMessage] = useState("");
+  const { isAuthenticated } = useContext(Context);
+  const navigate = useNavigate();
 
-    const handleMessage = async(e)=>{
-        e.preventDefault();
-        try{
-            await axios.post("http://localhost:4000/api/v1/message/send",{firstName,lastName,message,phone,email},{withCredentials:true,headers:{"Content-Type":"application/json"}}).then(res=>{toast.success(res.data.message);setFirstName("");setLastName("");setEmail("");setMessage("");setPhone("")})
-        }catch(error){
-            toast.error(error.response.data.message)
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-        }
-    };
+  const handleMessage = async (e) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      toast.error("Please sign in to continue");
+      navigate("/login");
+      return;
+    }
+
+    if (!firstName || !email || !phone || !message) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { data } = await axios.post(
+        "http://localhost:4000/api/v1/message/send",
+        { firstName, lastName, message, phone, email },
+        { withCredentials: true, headers: { "Content-Type": "application/json" } }
+      );
+
+      toast.success(data.message || "Message sent successfully ✅");
+
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setPhone("");
+      setMessage("");
+
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to send message");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className='container form-component message-form'>
+    <div className="message-wrapper">
+      <div className="message-card">
         <h2>Send Us A Message</h2>
-        <form onSubmit={handleMessage}>
-            <div>
-                <input type="text" placeholder='First Name' value={firstName} onChange={(e)=>setFirstName(e.target.value)}/>
-                <input type="text" placeholder='Last Name' value={lastName} onChange={(e)=>setLastName(e.target.value)}/>
-            </div>
-            <div>
-                <input type="text" placeholder='Email' value={email} onChange={(e)=>setEmail(e.target.value)}/>
-                <input type="number" placeholder='Phone Number' value={phone} onChange={(e)=>setPhone(e.target.value)}/>
-            </div>
-            <textarea rows={7} placeholder='Message' value={message} onChange={(e)=>setMessage(e.target.value)}></textarea>
-            <div style={{justifyContent:"center",alignContent:"center"}}>
-                <button type='submit'>Send</button>
-            </div>
-        </form>
-    </div>
-  )
-}
 
-export default MessageForm
+        {!isAuthenticated && (
+          <p className="message-warning">
+            ⚠ Please sign in to send a message
+          </p>
+        )}
+
+        <form onSubmit={handleMessage}>
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="First Name *"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={loading}
+            />
+            <input
+              type="text"
+              placeholder="Last Name (optional)"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-row">
+            <input
+              type="email"
+              placeholder="Email *"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+            <input
+              type="number"
+              placeholder="Phone Number *"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          <textarea
+            rows="5"
+            placeholder="Message *"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            disabled={loading}
+          />
+
+          <button type="submit" className="appointment-btn" disabled={loading}>
+            {loading ? "Sending..." : "Send Message"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default MessageForm;

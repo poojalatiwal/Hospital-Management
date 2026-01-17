@@ -1,53 +1,69 @@
-import React, { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useContext, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { Context } from "../main";
-import {GiHamburger} from "react-icons/gi"
+import { HiOutlineMenuAlt3 } from "react-icons/hi";
+import { IoClose } from "react-icons/io5";
 
 const Navbar = () => {
   const { isAuthenticated, setIsAuthenticated } = useContext(Context);
   const navigateTo = useNavigate();
+  const [show, setShow] = useState(false);
 
   const handleLogout = async () => {
-    await axios
-      .get("http://localhost:4000/api/v1/user/patient/logout", {
-        withCredentials: true,
-      })
-      .then((res) => {
-        toast.success(res.data.message);
-        setIsAuthenticated(false);
-      })
-      .catch((err) => {
-        toast.error(err.response.data.message);
-      });
-  };
-
-  const goToLogin = () => {
-    navigateTo("/login");
+    try {
+      const res = await axios.get(
+        "http://localhost:4000/api/v1/user/patient/logout",
+        { withCredentials: true }
+      );
+      toast.success(res.data.message);
+      setIsAuthenticated(false);
+      navigateTo("/login");
+      setShow(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Logout failed");
+    }
   };
 
   return (
-    <nav>
-      <div className="logo"> <img src="./logo.png" alt="logo"  className='logo-img'/></div>
-      <div className="navLinks">
-        <div className="links">
-          <Link to={"/"}>HOME</Link>
-          <Link to={"/appointment"}>APPOINTMENT</Link>
-          <Link to={"/about"}>About us</Link>
+    <nav className="navbar">
+      
+      {/* LOGO */}
+      <div className="logo">
+        <img src="/logo.png" alt="logo" className="logo-img" />
+      </div>
+
+      {/* LINKS + LOGIN */}
+      <div className={`navLinks ${show ? "open" : ""}`}>
+        
+        {/* ❌ CLOSE (MOBILE) */}
+        <div className="mobile-top">
+          <IoClose onClick={() => setShow(false)} />
         </div>
+
+        {/* NAV LINKS */}
+        <div className="links" onClick={() => setShow(false)}>
+          <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/appointment">Appointment</NavLink>
+          <NavLink to="/about">About Us</NavLink>
+        </div>
+
+        {/* LOGIN / LOGOUT */}
         {isAuthenticated ? (
-          <button className="logoutBtn btn" onClick={handleLogout}>
-            LOGOUT
+          <button className="nav-btn" onClick={handleLogout}>
+            Logout
           </button>
         ) : (
-          <button className="logoutBtn btn" onClick={goToLogin}>
-            LOGIN
+          <button className="nav-btn" onClick={() => navigateTo("/login")}>
+            Login
           </button>
         )}
       </div>
-      <div className="hamburger" onClick={()=>setShow(!show)}>
-            <GiHamburger/>
+
+      {/* ☰ HAMBURGER */}
+      <div className="hamburger" onClick={() => setShow(true)}>
+        <HiOutlineMenuAlt3 />
       </div>
     </nav>
   );
