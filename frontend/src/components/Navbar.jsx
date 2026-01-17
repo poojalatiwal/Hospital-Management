@@ -14,7 +14,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:4000/api/v1/user/patient/logout",
+        "https://hospital-mangement-system-58iq.onrender.com/api/v1/user/patient/logout",
         { withCredentials: true }
       );
       toast.success(res.data.message);
